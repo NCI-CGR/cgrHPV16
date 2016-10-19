@@ -1,0 +1,44 @@
+# Configuration for HPV Snakemake pipeline.
+
+
+# 1) This is where the remapped bam files can be found.
+glob_path: /CGF/Sequencing/IonTorrent/PGM_Primary_Data/projects/mks/RD153_CVT/Auto*/*.bam
+
+# 2) This is name of the deliverable directory.
+deliver_proj: HPV16_CVT_RD153_20160421
+
+# 3) Update the parser function in the Snakefile to match the bam filenames.
+
+# 4) Update the wrapper.sh script.
+
+# 5) Choose a read depth of 4 or 6 by selecting the correct TVC json file
+#    below.
+
+# -------------------------------------------------------------
+# These files will not change between runs
+# -------------------------------------------------------------
+
+# Reference files
+hg_fasta: /CGF/Sequencing/IonTorrent/PGM_Primary_Data/referenceLibrary/tmap-f3/HPV16Ref_hg19/HPV16Ref_hg19.fasta
+len_bed: /CGF/Sequencing/Analysis/Research/RD_reference/HPV/HPV16/hpv16.bed
+amp_bed: /CGF/Sequencing/Analysis/Research/RD_reference/HPV/HPV16/HPV16_amplicon_no_primer_01172015.bed
+
+# Tools and packages
+# Warning - you MUST use GATK version 3.3!
+gatk: /CGF/Sequencing/Analysis/ion_dev/GATK/GenomeAnalysisTK-3.3-0/GenomeAnalysisTK.jar
+
+vc_bin: /CGF/Sequencing/Analysis/Research/RD_reference/HPV/tvc-5.0.3/bin
+vc_pipe: /CGF/Sequencing/Analysis/Research/RD_reference/HPV/tvc-5.0.3/bin/variant_caller_pipeline.py
+
+# choose a TVC read depth of 4 or 6
+#vc_param: /CGF/Sequencing/Analysis/Research/RD_reference/HPV/germline_low_stringency_no_het.json
+vc_param: /CGF/Sequencing/Analysis/Research/RD_reference/HPV/germline_low_stringency_no_het_low_depth.json
+
+cov_dev: /CGF/Sequencing/Analysis/Research/RD_reference/HPV/cgrCoverageDev
+
+snpeff: /CGF/Sequencing/Analysis/ion_dev/snpEff/snpEff
+# the bed file has a custom list of features (usually regulation)
+snpeff_bed:  /CGF/Sequencing/Analysis/ion_dev/snpEff/snpEff/data/hpv16/source/regulation.bed
+hpv_type: hpv16
+
+# You need glu installed in your PATH
