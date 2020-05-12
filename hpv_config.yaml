@@ -1,0 +1,106 @@
+# Configuration for Universal and Single Panel primer Snakemake pipeline.
+
+
+# 1) This is where the original bam files can be found. (glob)
+raw_path: your/path/*bam
+
+# 2) This is where the **REMAPPED** bam files can be found. (glob)
+tmap_path: tmap/path/*bam
+
+# types to include in analysis. creates dictionary {'hpvtypes': ['16', '18', etc]} 
+hpvtypes:
+    - '16'
+
+# are the reference genomes padded?
+padding: True
+
+# amplicon panel type (single or universal)
+panel: single
+
+# genes in gtf
+genes:
+    - E1
+    - E2
+    - E4
+    - E5
+    - E6
+    - E7
+    - E8
+    - L1
+    - L2
+
+no_e5:
+    - 51
+    - 56
+
+
+# 5) Set the cohort prefix if any (blank if not)
+cohort:
+
+# 6) This is name of the deliverable directory.
+#deliver_proj: Type_Study_RD###_YearMonthDay
+deliver_proj: project_name
+deliver_dir: /path/project
+
+# 7) Update the parser in the Snakemake file to match the raw bam filenames
+# This hasn't changed in a long time, so this step can usually be ignored.
+
+# 8) Update the wrapper.sh script
+
+# 9) Select mapq threshold.
+aq_filter: 4
+
+# coverage bins
+mosdepth_thresh: '4,20,100,1000'
+mosdepth_quant: 0:20:50:100:200
+
+# 10) Fix titles in coverage_Snakefile for appropriate Type.
+
+# 11) choose minimum read depth for fasta files
+min_read: 4
+
+# 12) choose cutoff for % Ns in the final fasta
+fasta_n: 75
+
+# 13) choose max # reads for colorbar for coverage clutermap
+cbar_max: 20
+
+# Make sure X forwarding is enabled for ete3 toolkit!!
+# 14) phylo tree params
+ete_wf: none-none-none-fasttree_default
+
+
+#######  Reference Files - Nothing below should be changed between runs!
+
+# These directories also contain the necessary index and dict files for TMAP
+hpv_reference: /references/HPV_Ref_Alphas65_Pad400_hg19.fasta 
+    # this file has line breaks and will not break TVC, however, you can't use it for the type_fasta rule
+hpv_ref_nobreak: /references/HPV_Ref_Alphas65_Pad400_hg19.fasta.NOBREAKS
+    # this file will break TVC but can be used for the type_fasta rule
+
+# beds are linked here with the format: HPV16.amplicon.bed
+#amplicon_bed: /references/HPV/amplicon_bed/HPV%s.amplicon.bed
+amplicon_bed: /references/WG00038.1_HPV%s_FFPE.Designed.bed
+universal_bed: /references/HPVRef_13Types_Ref_Mapped_hg19_update_HPV16.unmerged-detail.bed
+
+# these bed files encompass the full genome from 0..8000 (or whatever)
+len_bed: /references/hpv%s.bed 
+
+lineage: /references/HPV%s_lineages.fasta
+
+# Tools and packages
+
+vc_bin: /references/HPV/tvc-5.0.3/bin
+vc_pipe: /references/HPV/tvc-5.0.3/bin/variant_caller_pipeline.py
+vc_param: /references/HPV/germline_low_stringency_no_het_low_depth.json
+cov_dev: /references/HPV/cgrCoverageDev
+glu: /references/HPV/glu
+
+# SNPEFF
+# any new HPV types need to be added to the hpv_universal database and the annotations txt below
+snpeff: /references/snpEff
+snpeff_db: hpv_universal
+snpeff_bed: /references/HPV/universal_annotations_20170106.txt # has extra regions like splice, URR, etc.
+genes_gtf: /references/snpEff/data/hpv_universal/genes.gtf # this does not have the CDS, start, stop, etc regions
+genes_bed: /references/HPV/universal_genes.bed # above gtf converted to bed format - also no CDS, etc
+

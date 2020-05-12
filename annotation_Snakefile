@@ -1,0 +1,94 @@
+# vim: ft=python
+
+configfile: 'hpv_config.yaml'
+workdir: os.environ['PWD']
+shell.executable('bash')
+
+localrules: ann_all
+
+rule ann_all:
+    input: 
+        'reports/%s_all_vcf_tables.txt' %config['deliver_proj'],
+        'multiqc/snpeff_report.html'
+
+rule annotate:
+    input: 'tvc_vcf/{sampleID}.tvc_no_pad.vcf'
+    output:
+        'tvc_ann/{sampleID}.ann.vcf',
+        'tvc_ann/{sampleID}_snpEff.summary.csv'
+    params:
+        snpeff = config['snpeff'],
+        bed = config['snpeff_bed'],
+        db = config['snpeff_db']
+    run:
+        shell('java -Xmx2g -jar {params.snpeff}/snpEff.jar \
+                -ud 0 -interval {params.bed} \
+                -csvStats \
+                -stats {output[1]} \
+                -c {params.snpeff}/snpEff.config {params.db} {input} > {output[0]}')
+
+#--------------------------------------------------------------------------
+rule snpeff_report:
+    input: expand('tvc_ann/{sampleID}_snpEff.summary.csv', sampleID=sampleIDs)
+    output: 'multiqc/snpeff_report.html'
+    run:
+        shell('multiqc -d tvc_ann -n snpeff_report -o multiqc')
+
+
+def parse_field(INFO, field):
+    # pass the entire INFO column and the field you want to isolate
+    if field + '=' in INFO:
+        return INFO.split(field + '=')[1].split(';')[0]
+    else:
+        return ''
+
+rule parse_INFO:
+    input: rules.annotate.output[0]
+    output: 'vcf_tables/{sampleID}.ann.vcf.txt'
+    run:
+        # count the number of header lines and make a list of all INFO fields
+        infile = open(input[0], 'r')
+        head_lines = 0
+        fields = []
+        for line in infile:
+            if line.startswith('#') == False:
+                break
+            else:
+                head_lines += 1
+            if 'ID=' in line:
+                field = line.split('ID=')[1].split(',')[0]
+                fields.append(field)
+        infile.close()
+
+        # import the vcf and parse the INFO column
+        try: # check for empty dataframes
+            df = pandas.read_table(input[0], skiprows=head_lines-1, sep='\t') # -1 keeps the original column headers
+            col10 = df.columns.tolist()[-1]
+            df.rename(columns={col10:'sample_col'}, inplace=True) # the 10th column needs standardized name
+            cols = df.columns.tolist()
+            df['sampleID'] = wildcards.sampleID
+            df = df[['sampleID'] + cols] # make sample ID the first column
+            field_cols = []
+            for field in fields: # create a column for each field
+                df[field] = df.INFO.apply(lambda x: parse_field(x, field))
+                field_cols.append(field)
+            df = df[['sampleID'] + cols + field_cols] # reorder the columns in the spreadsheet
+            df.to_csv(output[0], sep='\t', index=False)
+
+        except:
+            errormess = wildcards.sampleID + ': no variants called'
+            shell('echo %s > {output}' %errormess)
+            
+rule cat_vcf_tables:
+    input: expand('vcf_tables/{sampleID}.ann.vcf.txt', sampleID=sampleIDs)
+    output: 'reports/%s_all_vcf_tables.txt' %config['deliver_proj']
+    run:
+        dfs = []
+        cols = []
+        for fname in input:
+            temp = pandas.read_table(fname, sep='\t')
+            cols = temp.columns
+            dfs.append(temp)
+        df = pandas.concat(dfs)
+        df = df[cols] # reorder the columns in the spreadsheet
+        df.to_csv(output[0], sep='\t', index=False)
